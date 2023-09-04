@@ -12,10 +12,10 @@
 #     print(imu.accel.z)
 
 #     sleep(1000)
-from MPU6050_Unified import sleep_ms
-from MPU6050 import MPU6050
+from PiicoDev_Unified import sleep_ms
+from PiicoDev_MPU6050 import PiicoDev_MPU6050
 
-# Example code for PiicoDev Motion Sensor MPU6050
+# Example code for Motion Sensor MPU6050
 # Cross-platform compatible sleep function
 
 
@@ -46,3 +46,10 @@ while True:
 #     print("G-Force: " + str(gforce))
 
     sleep_ms(100)
+
+
+# from microbit import *
+
+# sleep(1000)
+
+# print("Hello Terminal!")
