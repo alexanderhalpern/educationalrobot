@@ -1,4 +1,6 @@
 from microbit import *
+import radio
+import time
 # from mpu9250 import MPU9250
 # from mpu9250 import MPU9250
 # imu = MPU9250('X')
@@ -17,6 +19,44 @@ from PiicoDev_MPU6050 import PiicoDev_MPU6050
 
 # Example code for Motion Sensor MPU6050
 # Cross-platform compatible sleep function
+# pin1=left
+# pin2=right
+
+# controlling distance with time
+forwardreverseTime = 1450
+turnTime = 700
+# servo motor compensation:
+# 1.0 = 100% C
+# 1.1 = 80% C
+# ...
+# 1.5 = 0% STOPPED
+# ...
+# 1.9 = 80% CC
+# 2.0 = 100% CC
+pin1Comp = 0.0
+pin2Comp = 0.125
+# 50Hz to 20 ms pulse
+pin1.set_analog_period(20)
+pin2.set_analog_period(20)
+
+# rotationSquare = 0.769148546224 #35.5*pi/145 = rev  |  35.5mm wheel dia, 145mm distance of mat
+
+# specific motor control functions
+
+
+def stop():
+    pin1.write_analog(0)
+    pin2.write_analog(0)
+    # display.show(stopSign)
+    sleep(1000)
+
+
+def forward(left, right):
+    pin1.write_analog(1023 * (left-pin1Comp) / 20)
+    pin2.write_analog(1023 * (right+pin2Comp) / 20)
+    # display.show(Image.ARROW_N)
+    # sleep(forwardreverseTime)  # one tire revolution
+    # stop()
 
 
 motion = PiicoDev_MPU6050()
@@ -34,12 +74,16 @@ def calibrate_accelerometer():
         sleep_ms(int(1000/samples))
 
     accel_cal_values = {}
-    accel_cal_values['x'] = -1 * (sum([val["x"] for val in raw_data]) / samples)
-    accel_cal_values['y'] = -1 * (sum([val["y"] for val in raw_data]) / samples)
-    accel_cal_values['z'] = 9.81 - (sum([val["z"] for val in raw_data]) / samples)
+    accel_cal_values['x'] = -1 * \
+        (sum([val["x"] for val in raw_data]) / samples)
+    accel_cal_values['y'] = -1 * \
+        (sum([val["y"] for val in raw_data]) / samples)
+    accel_cal_values['z'] = 9.81 - \
+        (sum([val["z"] for val in raw_data]) / samples)
     print("Adjusting acceleromter using the following constants:", accel_cal_values)
 
     return accel_cal_values
+
 
 def calibrate_gyro():
     display.scroll("Calibrating...", delay=50)
@@ -58,20 +102,31 @@ def calibrate_gyro():
     print("Adjusting gyro using the following constants:", gyro_cal_values)
 
     return gyro_cal_values
-    
 
 
-calibrate_accelerometer()
-calibrate_gyro()
-
-while False:
+accel_cal_values = calibrate_accelerometer()
+gyro_cal_values = calibrate_gyro()
+start = time.ticks_ms()
+while True:
 
     # Accelerometer data
+    straight = True
+
+    if time.ticks_diff(time.ticks_ms(), start) > 1000:
+        start = time.ticks_us()
+        straight = not straight
+    if straight:
+        forward(2.0, 1.0)
+    else:
+        stop()
+    print(time.ticks_diff(time.ticks_ms(), start))
     accel = motion.read_accel_data()  # read the accelerometer [ms^-2]
-    aX = accel["x"]
-    aY = accel["y"]
-    aZ = accel["z"]
+    aX = accel["x"] + accel_cal_values['x']
+    aY = accel["y"] + accel_cal_values['y']
+    aZ = accel["z"] + accel_cal_values['z']
     print("x:" + str(aX) + " y:" + str(aY) + " z:" + str(aZ))
+    radio.send(("x:" + str(aX)[0:5] + " y:" +
+               str(aY)[0:5] + " z:" + str(aZ)[0:5]))
 
     # Gyroscope Data
 #     gyro = motion.read_gyro_data()   # read the gyro [deg/s]
