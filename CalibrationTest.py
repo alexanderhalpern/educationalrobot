@@ -48,7 +48,7 @@ def stop():
     pin1.write_analog(0)
     pin2.write_analog(0)
     # display.show(stopSign)
-    sleep(1000)
+    # sleep(1000)
 
 
 def forward(left, right):
@@ -107,17 +107,18 @@ def calibrate_gyro():
 accel_cal_values = calibrate_accelerometer()
 gyro_cal_values = calibrate_gyro()
 start = time.ticks_ms()
+mode = 0
 while True:
 
     # Accelerometer data
-    straight = True
-
-    if time.ticks_diff(time.ticks_ms(), start) > 1000:
-        start = time.ticks_us()
-        straight = not straight
-    if straight:
+    if time.ticks_diff(time.ticks_ms(), start) > 5000:
+        start = time.ticks_ms()
+        mode = (mode + 1) % 3
+    if mode == 0:
         forward(2.0, 1.0)
-    else:
+    if mode == 1:
+        forward(2.0, 1.3)
+    if mode == 2:
         stop()
     print(time.ticks_diff(time.ticks_ms(), start))
     accel = motion.read_accel_data()  # read the accelerometer [ms^-2]
