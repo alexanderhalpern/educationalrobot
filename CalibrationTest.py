@@ -107,48 +107,59 @@ def calibrate_gyro():
 accel_cal_values = calibrate_accelerometer()
 gyro_cal_values = calibrate_gyro()
 start = time.ticks_ms()
+global_time_start = time.ticks_ms()
+acceleration_buffer = []
+velocity_buffer = []
+time_delta = 1 * 50  # t secs * 1000 ms
 mode = 0
+(vX, vY) = (0, 0)
+(pX, pY) = (0, 0)
+counter = 0
 while True:
 
-    # Accelerometer data
-    if time.ticks_diff(time.ticks_ms(), start) > 5000:
-        start = time.ticks_ms()
-        mode = (mode + 1) % 3
-    if mode == 0:
-        forward(2.0, 1.0)
-    if mode == 1:
-        forward(2.0, 1.3)
-    if mode == 2:
-        stop()
-    print(time.ticks_diff(time.ticks_ms(), start))
     accel = motion.read_accel_data()  # read the accelerometer [ms^-2]
     aX = accel["x"] + accel_cal_values['x']
     aY = accel["y"] + accel_cal_values['y']
     aZ = accel["z"] + accel_cal_values['z']
-    print("x:" + str(aX) + " y:" + str(aY) + " z:" + str(aZ))
+
+    aX, aY, aZ = float('%.2f' % aX), float('%.2f' % aY), float('%.2f' % aZ)
+
+    print(aX, aY, aZ)
+    acceleration_buffer.append((aX, aY))
+    # if counter % 20 == 0:
+    # print("X accel", accel["x"], "Y accel",
+    #       accel["y"], "Z accel", accel["z"])
+
+    if len(acceleration_buffer) >= 2:
+        print("acceleration buffer", acceleration_buffer,
+              "vX:" + '%.2f' % vX + " vY:" + '%.2f' % vY)
+        if velocity_buffer:
+            print("compare", vX, velocity_buffer[-1][0])
+        vX += (
+            (acceleration_buffer[-1][0] + acceleration_buffer[-2][0]) / 2) * (time_delta / 1000)
+        vY += (
+            (acceleration_buffer[-1][1] + acceleration_buffer[-2][1]) / 2) * (time_delta / 1000)
+
+        acceleration_buffer.pop(0)
+        velocity_buffer.append((float('%.2f' % vX), float('%.2f' % vY)))
+        # if counter % 20 == 0:
+        #     print("vX:" + str(vX) + " vY:" + str(vY))
+
+    if len(velocity_buffer) >= 2:
+        print("velocity_buffer", velocity_buffer, "pX:" + '%.2f' %
+              pX + " pY:" + '%.2f' % pY)
+        pX += ((velocity_buffer[-1][0] +
+                velocity_buffer[-2][0]) / 2) * (time_delta / 1000)
+        pY += ((velocity_buffer[-1][1] +
+                velocity_buffer[-2][1]) / 2) * (time_delta / 1000)
+        pX, pY = float('%.2f' % pX), float('%.2f' % pY)
+        velocity_buffer.pop(0)
+        # if counter % 20 == 0:
+        # print()
+
+    # print("x:" + str(aX) + " y:" + str(aY) + " z:" + str(aZ))
     radio.send(("x:" + str(aX)[0:5] + " y:" +
                str(aY)[0:5] + " z:" + str(aZ)[0:5]))
 
-    # Gyroscope Data
-#     gyro = motion.read_gyro_data()   # read the gyro [deg/s]
-#     gX = gyro["x"]
-#     gY = gyro["y"]
-#     gZ = gyro["z"]
-#     print("x:" + str(gX) + " y:" + str(gY) + " z:" + str(gZ))
-
-    # Rough temperature
-#     temp = motion.read_temperature()   # read the device temperature [degC]
-#     print("Temperature: " + str(temp) + "°C")
-
-    # G-Force
-#     gforce = motion.read_accel_abs(g=True) # read the absolute acceleration magnitude
-#     print("G-Force: " + str(gforce))
-
-    sleep_ms(100)
-
-
-# from microbit import *
-
-# sleep(1000)
-
-# print("Hello Terminal!")
+    sleep_ms(time_delta)
+    counter += 1
