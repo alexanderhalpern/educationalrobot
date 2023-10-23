@@ -123,18 +123,10 @@ while True:
     aZ = accel["z"] + accel_cal_values['z']
 
     aX, aY, aZ = float('%.2f' % aX), float('%.2f' % aY), float('%.2f' % aZ)
-
     print(aX, aY, aZ)
     acceleration_buffer.append((aX, aY))
-    # if counter % 20 == 0:
-    # print("X accel", accel["x"], "Y accel",
-    #       accel["y"], "Z accel", accel["z"])
 
     if len(acceleration_buffer) >= 2:
-        print("acceleration buffer", acceleration_buffer,
-              "vX:" + '%.2f' % vX + " vY:" + '%.2f' % vY)
-        if velocity_buffer:
-            print("compare", vX, velocity_buffer[-1][0])
         vX += (
             (acceleration_buffer[-1][0] + acceleration_buffer[-2][0]) / 2) * (time_delta / 1000)
         vY += (
@@ -142,8 +134,6 @@ while True:
 
         acceleration_buffer.pop(0)
         velocity_buffer.append((float('%.2f' % vX), float('%.2f' % vY)))
-        # if counter % 20 == 0:
-        #     print("vX:" + str(vX) + " vY:" + str(vY))
 
     if len(velocity_buffer) >= 2:
         print("velocity_buffer", velocity_buffer, "pX:" + '%.2f' %
